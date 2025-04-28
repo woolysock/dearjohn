@@ -6,5 +6,10 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UILaunchScreen</key>
+		<string>Launch Screen</string>
+	</dict>
 </dict>
 </plist>

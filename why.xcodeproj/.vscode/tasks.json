@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "build xcode",
+        "type": "shell",
+        "command": "xcodebuild",
+        "args": [
+          "-scheme", "YourSchemeName",
+          "-workspace", "YourProject.xcworkspace",
+          "-configuration", "Debug",
+          "build"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
+  
