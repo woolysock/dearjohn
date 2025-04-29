@@ -5,16 +5,52 @@
 //  Created by Megan Donahue on 4/28/25.
 //  Copyright © 2025 meg&d design. All rights reserved.
 //
+
 import SwiftUI
 
+// MARK: - View Extension to Capture Position
+extension View {
+    func capturePosition(index: Int, onChange: @escaping (Int, CGPoint) -> Void) -> some View {
+        self.background(
+            GeometryReader { geo in
+                Color.clear
+                    .preference(key: WordPositionKey.self, value: [index: geo.frame(in: .global).origin])
+            }
+        )
+        .onPreferenceChange(WordPositionKey.self) { values in
+            if let newPos = values[index] {
+                onChange(index, newPos)
+            }
+        }
+    }
+}
+
+struct WordPositionKey: PreferenceKey {
+    static var defaultValue: [Int: CGPoint] = [:]
+    
+    static func reduce(value: inout [Int: CGPoint], nextValue: () -> [Int: CGPoint]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
+// MARK: - Main View
 struct EssencePoemView: View {
-    let poemLines = [
+    let poemWords = [
         "what", "is", "the", "essence", "of", "creation",
         "is", "it", "the", "thinking", "or", "the",
         "doing", "the", "sharing", "with", "others"
     ]
     
     @State private var wordStates: [WordState] = []
+    @State private var finishedWordCount = 0
+    @State private var phase2Started = false
+    @State private var showFinalWords: [Bool] = []
+    @State private var phase3Started = false
+    @State private var wordZoomOutStates: [Bool] = []
+    @State private var showQuestionMark = false
+    @State private var questionMarkScale: CGFloat = 0.1
+    @State private var questionMarkTapped = false
+    @State private var navigateToMenu = false
     
     struct WordState {
         var offset: CGSize = CGSize(width: 0, height: -600)
@@ -23,56 +59,209 @@ struct EssencePoemView: View {
     }
     
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
-            ForEach(poemLines.indices, id: \.self) { index in
-                Text(poemLines[index])
-                    .font(.custom("Futura", size: 32))
-                    .foregroundColor(.white.opacity(wordStates.indices.contains(index) ? wordStates[index].opacity : 0.9))
-                    .offset(wordStates.indices.contains(index) ? wordStates[index].offset : CGSize(width: 0, height: -600))
-                    .rotationEffect(.degrees(wordStates.indices.contains(index) ? wordStates[index].rotation : 0))
-                    .onAppear {
-                        animateWord(at: index)
+        NavigationView {  // Embed in NavigationView
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                if !phase2Started {
+                    // Phase 1: bouncing words
+                    ForEach(poemWords.indices, id: \.self) { index in
+                        Text(poemWords[index])
+                            .font(.custom("Futura", size: 32))
+                            .foregroundColor(.white.opacity(wordStates.indices.contains(index) ? wordStates[index].opacity : 0.9))
+                            .offset(wordStates.indices.contains(index) ? wordStates[index].offset : CGSize(width: 0, height: -600))
+                            .rotationEffect(.degrees(wordStates.indices.contains(index) ? wordStates[index].rotation : 0))
+                            .onAppear {
+                                animateWord(at: index)
+                            }
                     }
+                }
+                
+                if phase2Started && !phase3Started {
+                    // Phase 2: stacked vertical words
+                    VStack(alignment: .trailing, spacing: 10) {
+                        ForEach(poemWords.indices, id: \.self) { index in
+                            Text(poemWords[index])
+                                .font(.custom("Futura", size: 36))
+                                .foregroundColor(.white)
+                                .opacity(showFinalWords.indices.contains(index) && showFinalWords[index] ? 1 : 0)
+                                .offset(x: 0, y: showFinalWords.indices.contains(index) && showFinalWords[index] ? 0 : 50)
+                                .animation(
+                                    .easeOut(duration: 1.2).delay(Double(index) * 0.1),
+                                    value: showFinalWords.indices.contains(index) ? showFinalWords[index] : false
+                                )
+                                .capturePosition(index: index) { idx, point in
+                                    saveWordPosition(index: idx, point: point)
+                                }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                    .padding(.trailing, 30)
+                }
+                
+                if phase3Started {
+                    // Phase 3: words zipping to center
+                    ForEach(poemWords.indices, id: \.self) { index in
+                        if showFinalWords[index] {
+                            Text(poemWords[index])
+                                .font(.custom("Futura", size: 36))
+                                .foregroundColor(.white)
+                                .opacity(wordZoomOutStates[index] ? 0 : 1)
+                                .scaleEffect(wordZoomOutStates[index] ? 0.1 : 1)
+                                .offset(wordStates[index].offset)
+                                .animation(
+                                    .easeIn(duration: 1.0),
+                                    value: wordStates[index].offset
+                                )
+                        }
+                    }
+                }
+                
+                if showQuestionMark {
+                    Group {
+                        if !questionMarkTapped {
+                            Text("?")
+                                .font(.custom("Futura", size: 200))
+                                .foregroundColor(.white)
+                                .scaleEffect(questionMarkScale)
+                                .opacity(0.9)
+                                .onTapGesture {
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        questionMarkTapped = true
+                                    }
+                                }
+                        } else {
+                            // When the question mark disappears, show "what?"
+                            Text("what?")
+                                .font(.custom("Futura", size: 60))
+                                .foregroundColor(.white)
+                                .transition(.opacity)
+                                .onTapGesture {
+                                    navigateToMenu = true
+                                }
+                        }
+                    }
+                    .animation(.easeInOut, value: questionMarkTapped)
+                }
             }
-        }
-        .onAppear {
-            wordStates = Array(repeating: WordState(), count: poemLines.count)
+            .onAppear {
+                wordStates = Array(repeating: WordState(), count: poemWords.count)
+                showFinalWords = Array(repeating: false, count: poemWords.count)
+                wordZoomOutStates = Array(repeating: false, count: poemWords.count)
+            }
+            .navigationDestination(isPresented: $navigateToMenu) {
+                MenuView() // Your MenuView
+            }
         }
     }
     
-    private func animateWord(at index: Int) {
-        let randomDelay = Double.random(in: 0.5...3.0) // Longer gaps between words
-        let randomOpacity = Double.random(in: 0.6...1.0) // Vary initial opacity
-        let bounceHeight = Double.random(in: 30...70) // Random bounce height
-        let finalX = Double.random(in: -200...200) // Final X position
-        let finalY = Double.random(in: 800...1000) // Final Y position
-        let finalRotation = Double.random(in: -40...40) // Random rotation during fall off
+    // MARK: - Phase 1 Animation (Bouncing)
+    func animateWord(at index: Int) {
+        let randomDelay = Double.random(in: 0.75...4.0)
+        let randomOpacity = Double.random(in: 0.6...1.0)
+        let bounceHeight = Double.random(in: 30...70)
+        let finalX = Double.random(in: -200...200)
+        let finalY = Double.random(in: 800...1000)
+        let finalRotation = Double.random(in: -40...40)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + randomDelay) {
-            // Fall to mid-point
             withAnimation(.easeIn(duration: 0.5)) {
                 wordStates[index].offset = CGSize(width: 0, height: 0)
                 wordStates[index].opacity = randomOpacity
             }
             
-            // Bounce immediately after reaching mid-point
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 let randomXOffset = Double.random(in: -30...30)
                 withAnimation(.easeOut(duration: 0.2)) {
                     wordStates[index].offset = CGSize(width: randomXOffset, height: -bounceHeight)
                 }
                 
-                // Fall off-screen with slight spin
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     withAnimation(.easeIn(duration: 0.6)) {
                         wordStates[index].offset = CGSize(width: finalX, height: finalY)
                         wordStates[index].rotation = finalRotation
                         wordStates[index].opacity = 0
                     }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        finishedWordCount += 1
+                        if finishedWordCount == poemWords.count {
+                            withAnimation {
+                                phase2Started = true
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                animateFinalWords()
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+    
+    // MARK: - Phase 2 Animation (Stack and Capture)
+    private func animateFinalWords() {
+        for index in poemWords.indices {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.1) {
+                withAnimation {
+                    showFinalWords[index] = true
+                }
+            }
+        }
+        
+        // After all words are visible, start phase 3
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(poemWords.count) * 0.15 + 2.0) {
+            withAnimation {
+                phase3Started = true
+            }
+            animateZoomOut()
+        }
+    }
+    
+    // MARK: - Phase 3 Animation (Zoom and Fly to Center)
+    private func animateZoomOut() {
+        for index in poemWords.indices {
+            let delay = Double.random(in: 0.2...(2.0))
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                // First, a slight wiggle
+                withAnimation(.easeInOut(duration: 0.2).repeatCount(3, autoreverses: true)) {
+                    wordStates[index].offset.width += 10
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    // Then curve toward center
+                    let randomCurveX = CGFloat.random(in: -150...150)
+                    let randomCurveY = CGFloat.random(in: -300...300)
+                    
+                    withAnimation(.easeIn(duration: 1.0)) {
+                        wordStates[index].offset = CGSize(width: randomCurveX / 2, height: randomCurveY / 2)
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation(.easeIn(duration: 0.5)) {
+                            wordStates[index].offset = .zero
+                            wordZoomOutStates[index] = true
+                        }
+                        
+                        if index == poemWords.count - 1 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                showQuestionMark = true
+                                questionMarkScale = 1.0
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Save Word Position After Phase 2
+    private func saveWordPosition(index: Int, point: CGPoint) {
+        guard index < wordStates.count else { return }
+        wordStates[index].offset = CGSize(
+            width: point.x - UIScreen.main.bounds.width / 2,
+            height: point.y - UIScreen.main.bounds.height / 2
+        )
     }
 }
