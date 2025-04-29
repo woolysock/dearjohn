@@ -5,27 +5,42 @@ struct PoemLine: Identifiable {
     let text: String
 }
 
+import SwiftUI
+
 struct LoadingView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            VStack{
+            VStack {
                 Image("why-loading")
                     .resizable()
                     .scaledToFit()
-                    .frame(width:60)
-                Text("meg&d design")
-                    .font(.system(size: 28, weight: .thin))
-                    .foregroundColor(.white)
-                Text("2025")
-                    .font(.system(size: 10, weight: .thin))
-                    .foregroundColor(.white)
+                    .frame(width: 200)
                 
+                Rectangle()
+                    .fill(Color.black)
+                    .frame(height: 30)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("a poem-ai-app-letter")
+                    Text("of sorts")
+                }
+                .font(.custom("Futura", size: 28))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 50)
+                
+                Spacer().frame(height: 100)
+                
+                Text("by\nmeg&d design")
+                    .font(.custom("Futura", size: 16))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
             }
-            
         }
     }
 }
+
 
 struct ContentView: View {
     @State private var isLoading = true
@@ -35,7 +50,8 @@ struct ContentView: View {
                 if isLoading {
                     LoadingView() //custom load screen goes here
                 } else {
-                    FullPoemView() // app content
+                    //WhyPoemView() // app content
+                    MenuView()
                 }
             }
             .onAppear {
@@ -49,7 +65,9 @@ struct ContentView: View {
  //   }
 }
 
-struct FullPoemView: View {
+struct WhyPoemView: View {
+    @Environment(\.presentationMode) var presentationMode
+
     let poemLines: [PoemLine] = [
         PoemLine(text: "WHY"),
         PoemLine(text: "write   code"),
@@ -70,20 +88,35 @@ struct FullPoemView: View {
     @State private var colorInverted: Bool = false
     @State private var scrollDirectionForward: Bool = true
     @GestureState private var dragOffset: CGFloat = 0
-    @State private var entryDirection: EntryDirection = .random // <-- New random direction for each line
-    
+    @State private var entryDirection: EntryDirection = .random
+    @State private var cycleCount: Int = 2
+    @State private var showMenu: Bool = false
+
     var body: some View {
         GeometryReader { geo in
-            ZStack {
+            ZStack(alignment: .topLeading) {
                 (colorInverted ? Color.white : Color.black).ignoresSafeArea()
-                
+
                 PoemLineView(
                     text: poemLines[currentIndex].text,
-                    entryDirection: entryDirection, // <-- Pass it in
+                    entryDirection: entryDirection,
                     invertedColors: colorInverted
                 )
                 .id(currentIndex)
                 .frame(width: geo.size.width, height: geo.size.height)
+
+                if showMenu {
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .padding()
+                        .foregroundColor(colorInverted ? .black : .white)
+                    }
+                }
             }
             .gesture(
                 DragGesture()
@@ -92,9 +125,10 @@ struct FullPoemView: View {
                     }
                     .onEnded { value in
                         advanceIndex()
-                   }
+                    }
             )
         }
+        .navigationBarBackButtonHidden(true)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(name: .triggerEntryAnimation, object: nil)
@@ -117,11 +151,15 @@ struct FullPoemView: View {
             scrollDirectionForward = false
             colorInverted.toggle()
             currentIndex = bookmark
+            
+            cycleCount += 1
+            if cycleCount >= 2 {
+                showMenu = true // now shows system Back button
+                return
+            }
         }
         
-        // ❗ When you change the index, also pick a NEW random direction
         entryDirection = EntryDirection.random
-        print("New entry direction: \(entryDirection)")
         NotificationCenter.default.post(name: .triggerEntryAnimation, object: nil)
     }
 }

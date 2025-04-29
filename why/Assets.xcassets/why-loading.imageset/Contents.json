@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "why_AppIcon-64.png",
+      "filename" : "dearjohn_AppIcon-128.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "why_AppIcon-128.png",
+      "filename" : "dearjohn_AppIcon-256.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "why_AppIcon-256.png",
+      "filename" : "dearjohn_AppIcon-512.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
