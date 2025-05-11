@@ -1,5 +1,5 @@
 //
-//  EssencePoemView.swift
+//  Poem_2_What_View.swift
 //  dearjohn
 //
 //  Created by Megan Donahue on 4/28/25.
@@ -34,11 +34,11 @@ struct WordPositionKey: PreferenceKey {
 }
 
 // MARK: - Main View
-struct EssencePoemView: View {
+struct Poem_2_What_View: View {
     let poemWords = [
         "what", "is", "the", "essence", "of", "creation",
         "is", "it", "the", "thinking", "or", "the",
-        "doing", "the", "sharing", "with", "others"
+        "doing", "the", "sharing", "with", "others", "?"
     ]
     
     @State private var wordStates: [WordState] = []
@@ -51,6 +51,7 @@ struct EssencePoemView: View {
     @State private var questionMarkScale: CGFloat = 0.1
     @State private var questionMarkTapped = false
     @State private var navigateToMenu = false
+    @State private var restartTimer: Timer?
     
     struct WordState {
         var offset: CGSize = CGSize(width: 0, height: -600)
@@ -79,13 +80,13 @@ struct EssencePoemView: View {
                 
                 if phase2Started && !phase3Started {
                     // Phase 2: stacked vertical words
-                    VStack(alignment: .trailing, spacing: 10) {
+                    VStack(alignment: .trailing, spacing: 2) {
                         ForEach(poemWords.indices, id: \.self) { index in
                             Text(poemWords[index])
-                                .font(.custom("Futura", size: 36))
+                                .font(.custom("Futura", size: 32))
                                 .foregroundColor(.white)
                                 .opacity(showFinalWords.indices.contains(index) && showFinalWords[index] ? 1 : 0)
-                                .offset(x: 0, y: showFinalWords.indices.contains(index) && showFinalWords[index] ? 0 : 50)
+                                .offset(x: 0, y: showFinalWords.indices.contains(index) && showFinalWords[index] ? 0 : 20)
                                 .animation(
                                     .easeOut(duration: 1.2).delay(Double(index) * 0.1),
                                     value: showFinalWords.indices.contains(index) ? showFinalWords[index] : false
@@ -96,7 +97,8 @@ struct EssencePoemView: View {
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-                    .padding(.trailing, 30)
+                    .padding(.trailing, 50)
+                    .padding(.vertical, 8)
                 }
                 
                 if phase3Started {
@@ -104,7 +106,7 @@ struct EssencePoemView: View {
                     ForEach(poemWords.indices, id: \.self) { index in
                         if showFinalWords[index] {
                             Text(poemWords[index])
-                                .font(.custom("Futura", size: 36))
+                                .font(.custom("Futura", size: 32))
                                 .foregroundColor(.white)
                                 .opacity(wordZoomOutStates[index] ? 0 : 1)
                                 .scaleEffect(wordZoomOutStates[index] ? 0.1 : 1)
@@ -130,19 +132,55 @@ struct EssencePoemView: View {
                                         questionMarkTapped = true
                                     }
                                 }
+                                .onAppear {
+                                    // Cancel any old timers just in case
+                                    restartTimer?.invalidate()
+                                }
                         } else {
-                            // When the question mark disappears, show "what?"
                             Text("what?")
                                 .font(.custom("Futura", size: 60))
                                 .foregroundColor(.white)
                                 .transition(.opacity)
                                 .onTapGesture {
-                                    navigateToMenu = true
+                                    restartTimer?.invalidate()
+                                    restartPoem()
+                                }
+                                .onAppear {
+                                    // Start auto-restart timer
+                                    restartTimer?.invalidate()
+                                    restartTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                                        restartPoem()
+                                    }
                                 }
                         }
                     }
-                    .animation(.easeInOut, value: questionMarkTapped)
                 }
+//                if showQuestionMark {
+//                    Group {
+//                        if !questionMarkTapped {
+//                            Text("?")
+//                                .font(.custom("Futura", size: 200))
+//                                .foregroundColor(.white)
+//                                .scaleEffect(questionMarkScale)
+//                                .opacity(0.9)
+//                                .onTapGesture {
+//                                    withAnimation(.easeOut(duration: 0.5)) {
+//                                        questionMarkTapped = true
+//                                    }
+//                                }
+//                        } else {
+//                            // When the question mark disappears, show "what?"
+//                            Text("what?")
+//                                .font(.custom("Futura", size: 60))
+//                                .foregroundColor(.white)
+//                                .transition(.opacity)
+//                                .onTapGesture {
+//                                    navigateToMenu = true
+//                                }
+//                        }
+//                    }
+//                    .animation(.easeInOut, value: questionMarkTapped)
+//                }
             }
             .onAppear {
                 wordStates = Array(repeating: WordState(), count: poemWords.count)
@@ -264,4 +302,27 @@ struct EssencePoemView: View {
             height: point.y - UIScreen.main.bounds.height / 2
         )
     }
+
+
+    // Function to restart poem
+    private func restartPoem() {
+        // Reset whatever states are needed to restart the poem
+        questionMarkTapped = false
+        showQuestionMark = false
+        navigateToMenu = false
+
+        //temp go back to main menu
+        navigateToMenu = true
+        
+        // TO DO ADD SOMETHING FUN HERE? INSTEAD OF THE ? COMING BACK 
+        
+        // Restart poem logic — call your real restart function here
+ 
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            showQuestionMark = true
+        }
+    }
+
+    
 }

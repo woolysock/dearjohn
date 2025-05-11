@@ -1,8 +1,8 @@
-// whyApp.swift
+// DearJohnApp.swift
 import SwiftUI
 
 @main
-struct whyApp: App {
+struct DearJohnApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
