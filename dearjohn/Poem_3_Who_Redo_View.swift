@@ -15,6 +15,9 @@ struct DriftingWord: Identifiable {
     var position: CGPoint
     var velocity: CGSize = .zero
     var textSize: CGSize = .zero
+    var fontSize: CGFloat = 20.0
+    var fontSizeIncreasing: Bool = true
+    var isFlashing: Bool = false
 }
 
 struct Poem_3_Who_Redo_View: View {
@@ -38,18 +41,25 @@ struct Poem_3_Who_Redo_View: View {
         "who?"
     ]
     
+    // Phase 1 states
     @State private var currentText = ""
     @State private var displayedLines: [String] = []
     @State private var currentLineIndex = 0
     @State private var isTyping = true
+    @State private var typingTimer: Timer?
+    @State private var fastTypingMode = false
     
+    // Phase 2 states
     @State private var wordPositions: [Int: CGPoint] = [:]
     @State private var driftingWords: [DriftingWord] = []
     @State private var inPhase2 = false
     @State private var hasCapturedWordPositions = false
-    @State private var typingTimer: Timer?
     @State private var driftTimer: Timer?
     @State private var showBackButton = false
+    
+    // Phase 3 states
+    @State private var inPhase3 = false
+    @State private var phase3Opacity: Double = 0.0
     
     // Motion manager for gyroscope
     private let motionManager = CMMotionManager()
@@ -77,6 +87,8 @@ struct Poem_3_Who_Redo_View: View {
                 )
                 .onAppear {
                     startTypingNextLine()
+                    // Start motion updates for shake detection during Phase 1
+                    startMotionUpdates()
                 }
             } else {
                 GeometryReader { geometry in
@@ -84,9 +96,38 @@ struct Poem_3_Who_Redo_View: View {
                         ZStack {
                             ForEach(driftingWords) { word in
                                 Text(word.text)
-                                    .font(.system(size: 20, weight: .regular, design: .monospaced))
-                                    .foregroundColor(.white)
+                                    .font(.system(size: word.fontSize, weight: .regular, design: .monospaced))
+                                    .foregroundColor(word.isFlashing ? .gray : .white)
                                     .position(word.position)
+                            }
+                            
+                            // Phase 3 gray overlay for top half of screen
+                            if inPhase3 {
+                                GeometryReader { geo in
+                                    VStack(spacing: 0) {
+                                        // Top 60% - gray overlay
+                                        Rectangle()
+                                            .fill(Color.gray)
+                                            .opacity(phase3Opacity * 0.6)
+                                            .frame(height: geo.size.height * 0.6)
+                                        
+                                        // Bottom 40% - transparent
+                                        Rectangle()
+                                            .fill(Color.clear)
+                                            .frame(height: geo.size.height * 0.4)
+                                    }
+                                }
+                                
+                                // Instruction text below the gray box
+                                VStack {
+                                    Spacer()
+                                        .frame(height: geometry.size.height * 0.65) // Position just below gray area
+                                    Text("can you catch all the words in the gray box?")
+                                        .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                        .foregroundColor(.white)
+                                        .opacity(phase3Opacity)
+                                    Spacer()
+                                }
                             }
                             
                             // Back button in top-left corner
@@ -135,7 +176,7 @@ struct Poem_3_Who_Redo_View: View {
         }
     }
 
-    // MARK: - Phase 1 Typing
+    // MARK: - Phase 1 Functions (Typing Animation)
     
     func isTypingComplete() -> Bool {
         return currentLineIndex >= fullLines.count && !isTyping
@@ -155,7 +196,7 @@ struct Poem_3_Who_Redo_View: View {
         // Cancel any existing timer
         typingTimer?.invalidate()
         
-        typingTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+        typingTimer = Timer.scheduledTimer(withTimeInterval: fastTypingMode ? 0.005 : 0.05, repeats: true) { timer in
             if charIndex < line.count {
                 let index = line.index(line.startIndex, offsetBy: charIndex + 1)
                 currentText = String(line[..<index])
@@ -166,29 +207,20 @@ struct Poem_3_Who_Redo_View: View {
                 currentLineIndex += 1
                 isTyping = false
                 
-                // Small delay before next line
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                // Small delay before next line (faster if in fast mode)
+                DispatchQueue.main.asyncAfter(deadline: .now() + (fastTypingMode ? 0.02 : 0.4)) {
                     startTypingNextLine()
                 }
             }
         }
     }
 
-    // Helper function to calculate text size
-    func calculateTextSize(for text: String) -> CGSize {
-        let font = UIFont.monospacedSystemFont(ofSize: 20, weight: .regular)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font]
-        let size = (text as NSString).size(withAttributes: attributes)
-        return size
-    }
-    
-    // MARK: - Phase 2 Setup + Drift
+    // MARK: - Phase 2 Functions (Drifting Words)
     
     func startPhase2() {
         inPhase2 = true
         
-        // Start gyroscope updates
-        startMotionUpdates()
+        // Motion updates already started in Phase 1, so no need to restart
         
         // Create drifting words from all displayed lines, filtering out empty strings
         var flatIndex = 0
@@ -199,17 +231,21 @@ struct Poem_3_Who_Redo_View: View {
                 let words = line.components(separatedBy: " ")
                 for word in words {
                     if !word.isEmpty {
-                        let pos = wordPositions[flatIndex] ?? CGPoint(x: 200, y: 200)
+                        // Use captured position if available, otherwise center screen
+                        let pos = wordPositions[flatIndex] ?? CGPoint(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2)
                         let randomVelocity = CGSize(
                             width: CGFloat.random(in: -1...1),  // Reduced from -2...2
                             height: CGFloat.random(in: -1...1)  // Reduced from -2...2
                         )
-                        let textSize = calculateTextSize(for: word)
+                        let textSize = calculateTextSize(for: word, fontSize: 20.0)
                         tempDriftingWords.append(DriftingWord(
                             text: word,
                             position: pos,
                             velocity: randomVelocity,
-                            textSize: textSize
+                            textSize: textSize,
+                            fontSize: 20.0,
+                            fontSizeIncreasing: true,
+                            isFlashing: false
                         ))
                         flatIndex += 1
                     }
@@ -224,6 +260,11 @@ struct Poem_3_Who_Redo_View: View {
             withAnimation(.easeIn(duration: 0.5)) {
                 showBackButton = true
             }
+        }
+        
+        // Start Phase 3 after 15 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
+            startPhase3()
         }
     }
 
@@ -254,13 +295,27 @@ struct Poem_3_Who_Redo_View: View {
                 let halfWidth = word.textSize.width / 2
                 let halfHeight = word.textSize.height / 2
                 
+                var hitWall = false
                 if word.position.x - halfWidth < 0 || word.position.x + halfWidth > size.width {
                     word.velocity.width *= -bounceEnergy
                     word.position.x = max(halfWidth, min(size.width - halfWidth, word.position.x))
+                    hitWall = true
                 }
                 if word.position.y - halfHeight < 0 || word.position.y + halfHeight > size.height {
                     word.velocity.height *= -bounceEnergy
                     word.position.y = max(halfHeight, min(size.height - halfHeight, word.position.y))
+                    hitWall = true
+                }
+                
+                // If hit wall, flash gray momentarily
+                if hitWall {
+                    word.isFlashing = true
+                    // Reset flash after 0.15 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        if let index = driftingWords.firstIndex(where: { $0.id == word.id }) {
+                            driftingWords[index].isFlashing = false
+                        }
+                    }
                 }
 
                 updatedWords[i] = word
@@ -308,11 +363,45 @@ struct Poem_3_Who_Redo_View: View {
                         updatedWords[i].position.y += normalY * separation
                         updatedWords[j].position.x -= normalX * separation
                         updatedWords[j].position.y -= normalY * separation
+                        
+                        // Update font sizes for both colliding words
+                        updateWordFontSize(&updatedWords[i])
+                        updateWordFontSize(&updatedWords[j])
                     }
                 }
             }
             
             driftingWords = updatedWords
+        }
+    }
+    
+    func updateWordFontSize(_ word: inout DriftingWord) {
+        if word.fontSizeIncreasing {
+            word.fontSize += 1.0
+            if word.fontSize >= 30.0 {
+                word.fontSize = 30.0
+                word.fontSizeIncreasing = false
+            }
+        } else {
+            word.fontSize -= 1.0
+            if word.fontSize <= 10.0 {
+                word.fontSize = 10.0
+                word.fontSizeIncreasing = true
+            }
+        }
+        
+        // Update text size based on new font size
+        word.textSize = calculateTextSize(for: word.text, fontSize: word.fontSize)
+    }
+
+    // MARK: - Phase 3 Functions (Gray Box Challenge)
+    
+    func startPhase3() {
+        inPhase3 = true
+        
+        // Slowly fade in the gray overlay over 3 seconds
+        withAnimation(.easeInOut(duration: 3.0)) {
+            phase3Opacity = 1.0
         }
     }
     
@@ -342,7 +431,7 @@ struct Poem_3_Who_Redo_View: View {
             )
             
             // Shake threshold and cooldown
-            let shakeThreshold: Double = 2.5
+            let shakeThreshold: Double = 2.0  // Reduced from 2.5 for more sensitivity
             let shakeCooldown: TimeInterval = 0.5
             
             if accelerationMagnitude > shakeThreshold &&
@@ -359,24 +448,27 @@ struct Poem_3_Who_Redo_View: View {
         driftTimer = nil
     }
     
-    // MARK: - Shake Handler
-    
     func handleShake() {
-        guard let screenBounds = UIScreen.main.bounds as CGRect? else { return }
-        
-        for i in driftingWords.indices {
-            // Jump to new random position
-            let newX = CGFloat.random(in: 80...(screenBounds.width - 80))
-            let newY = CGFloat.random(in: 100...(screenBounds.height - 100))
-            driftingWords[i].position = CGPoint(x: newX, y: newY)
-            
-            // Give words new random velocities for dynamic effect
-            let energyBoost: CGFloat = 2.0
-            driftingWords[i].velocity = CGSize(
-                width: CGFloat.random(in: -energyBoost...energyBoost),
-                height: CGFloat.random(in: -energyBoost...energyBoost)
-            )
+        if !inPhase2 {
+            // Phase 1: Speed up typing to fast mode
+            fastTypingMode = true
+        } else if !inPhase3 {
+            // Phase 2: Jump to Phase 3
+            startPhase3()
+        } else {
+            // Phase 3: Return to main menu
+            presentationMode.wrappedValue.dismiss()
         }
+    }
+
+    // MARK: - Helper Functions
+    
+    // Helper function to calculate text size for a given font size
+    func calculateTextSize(for text: String, fontSize: CGFloat) -> CGSize {
+        let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let size = (text as NSString).size(withAttributes: attributes)
+        return size
     }
 
     // MARK: - Word Position Key
