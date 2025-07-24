@@ -35,6 +35,8 @@ struct WordPositionKey: PreferenceKey {
 
 // MARK: - Main View
 struct Poem_2_What_View: View {
+    @Environment(\.dismiss) var dismiss
+    
     let poemWords = [
         "what", "is", "the", "essence", "of", "creation",
         "is", "it", "the", "thinking", "or", "the",
@@ -128,8 +130,10 @@ struct Poem_2_What_View: View {
                                 .scaleEffect(questionMarkScale)
                                 .opacity(0.9)
                                 .onTapGesture {
-                                    withAnimation(.easeOut(duration: 0.5)) {
-                                        questionMarkTapped = true
+                                    withAnimation(.easeOut(duration: 0.8)) {
+                                        //questionMarkTapped = true
+                                        //navigateToMenu = true
+                                        dismiss()
                                     }
                                 }
                                 .onAppear {
@@ -137,21 +141,24 @@ struct Poem_2_What_View: View {
                                     restartTimer?.invalidate()
                                 }
                         } else {
-                            Text("what?")
-                                .font(.custom("Futura", size: 60))
-                                .foregroundColor(.white)
-                                .transition(.opacity)
-                                .onTapGesture {
-                                    restartTimer?.invalidate()
-                                    restartPoem()
-                                }
-                                .onAppear {
-                                    // Start auto-restart timer
-                                    restartTimer?.invalidate()
-                                    restartTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
-                                        restartPoem()
-                                    }
-                                }
+                            
+
+                            // SHOWED THE TEXT "WHAT" AFTER TAPPING
+//                            Text("what?")
+//                                .font(.custom("Futura", size: 60))
+//                                .foregroundColor(.white)
+//                                .transition(.opacity)
+//                                .onTapGesture {
+//                                    restartTimer?.invalidate()
+//                                    restartPoem()
+//                                }
+//                                .onAppear {
+//                                    // Start auto-restart timer
+//                                    restartTimer?.invalidate()
+//                                    restartTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+//                                        restartPoem()
+//                                    }
+//                                }
                         }
                     }
                 }
@@ -227,7 +234,7 @@ struct Poem_2_What_View: View {
                             withAnimation {
                                 phase2Started = true
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                                 animateFinalWords()
                             }
                         }
@@ -310,18 +317,8 @@ struct Poem_2_What_View: View {
         questionMarkTapped = false
         showQuestionMark = false
         navigateToMenu = false
-
-        //temp go back to main menu
-        navigateToMenu = true
         
-        // TO DO ADD SOMETHING FUN HERE? INSTEAD OF THE ? COMING BACK 
-        
-        // Restart poem logic — call your real restart function here
- 
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            showQuestionMark = true
-        }
+       
     }
 
     

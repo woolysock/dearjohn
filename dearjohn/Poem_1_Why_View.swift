@@ -45,10 +45,10 @@ struct Poem_1_Why_View: View {
         PoemLine(text: "surely"),
         PoemLine(text: "  code will    "),
         PoemLine(text: "   happily      write write write"),
-        PoemLine(text: "ITSELF"),
-        PoemLine(text: "for"),
-        PoemLine(text: "ME"),
-        PoemLine(text: "I"),
+        PoemLine(text: "ITSELF    for ME"),
+//        PoemLine(text: "for"),
+//        PoemLine(text: "ME"),
+        PoemLine(text: "for I"),
         PoemLine(text: "happily happily happily happily happily happily"),
         PoemLine(text: "ASK"),
         PoemLine(text: "it to"),
@@ -71,7 +71,7 @@ struct Poem_1_Why_View: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     if showSwipeHint {
-                        Text("(swipe to continue)")
+                        Text("(swipe in any direction)")
                             .font(.custom("Futura", size: 18))
                             .foregroundColor(.gray)
                             .transition(.opacity)

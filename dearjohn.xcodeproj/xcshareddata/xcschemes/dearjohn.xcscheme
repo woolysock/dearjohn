@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "44D034042DBB22D1003BBAC3"
-               BuildableName = "why.app"
-               BlueprintName = "why"
-               ReferencedContainer = "container:why.xcodeproj">
+               BuildableName = "dearjohn.app"
+               BlueprintName = "dearjohn"
+               ReferencedContainer = "container:dearjohn.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "44D034042DBB22D1003BBAC3"
-            BuildableName = "why.app"
-            BlueprintName = "why"
-            ReferencedContainer = "container:why.xcodeproj">
+            BuildableName = "dearjohn.app"
+            BlueprintName = "dearjohn"
+            ReferencedContainer = "container:dearjohn.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -62,9 +62,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "44D034042DBB22D1003BBAC3"
-            BuildableName = "why.app"
-            BlueprintName = "why"
-            ReferencedContainer = "container:why.xcodeproj">
+            BuildableName = "dearjohn.app"
+            BlueprintName = "dearjohn"
+            ReferencedContainer = "container:dearjohn.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

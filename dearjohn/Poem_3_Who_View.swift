@@ -1,96 +1,9 @@
 // Poem_3_Who_View.swift
+// dearjohn
+
+//WORKING DRAFT _ MAY 10 2025
 
 import SwiftUI
-
-//WORKING DRAFT _ MAY 8 2025
-//import CoreMotion
-//
-//class MotionManager: ObservableObject {
-//    private var motionManager = CMMotionManager()
-//    @Published var roll: Double = 0.0
-//    @Published var pitch: Double = 0.0
-//
-//    init() {
-//        motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
-//        motionManager.startDeviceMotionUpdates(to: .main) { motion, _ in
-//            guard let motion = motion else { return }
-//            self.roll = motion.attitude.roll
-//            self.pitch = motion.attitude.pitch
-//        }
-//    }
-//}
-//
-//struct Poem_3_Who_View: View {
-//    @State private var currentIndex = 0
-//    @ObservedObject var motion = MotionManager()
-//    @State private var lastAdvanceTime = Date()
-//
-//    let lines: [String] = [
-//        "who?",
-//        "was",
-//        "i",
-//        "in time",
-//        "in place",
-//        "who will be",
-//        "me?",
-//        "and now",
-//        "who creates now",
-//        "who?"
-//    ]
-//
-//    var body: some View {
-//        ZStack {
-//            Color.black.ignoresSafeArea()
-//            VStack {
-//                Spacer()
-//                Text(lines[currentIndex])
-//                    .font(.system(size: 64, weight: .bold))
-//                    .foregroundColor(.white)
-//                    .offset(x: CGFloat(motion.roll) * 100, y: CGFloat(motion.pitch) * 100)
-//                    .transition(getTransition(for: currentIndex))
-//                    .id(currentIndex)
-//                Spacer()
-//            }
-//        }
-//        .onChange(of: currentIndex) {
-//            advanceLine()
-//        }
-//        .onChange(of: motion.pitch) {
-//            if motion.pitch > 1 && Date().timeIntervalSince(lastAdvanceTime) > 1 {
-//                skipToNextLine()
-//            }
-//        }
-//        .onAppear {
-//            advanceLine()
-//        }
-//        .navigationBarBackButtonHidden(false)
-//    }
-//
-//    func advanceLine() {
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-//            skipToNextLine()
-//        }
-//    }
-//
-//    func skipToNextLine() {
-//        if currentIndex < lines.count - 1 {
-//            withAnimation {
-//                currentIndex += 1
-//                lastAdvanceTime = Date()
-//            }
-//        }
-//    }
-//
-//    func getTransition(for index: Int) -> AnyTransition {
-//        switch index {
-//        case 0...3: return .move(edge: .top) // Phase 1: Slow Reveal
-//        case 4: return .move(edge: .leading) // Phase 2: Disruption
-//        case 7: return .scale // Phase 3: Whispers
-//        default: return .opacity
-//        }
-//    }
-//}
-
 
 import CoreMotion
 
@@ -100,7 +13,7 @@ class MotionManager: ObservableObject {
     @Published var pitch: Double = 0.0
     @Published var acceleration: CMAcceleration = .init(x: 0, y: 0, z: 0)
     @Published var accelerationMagnitude: Double = 0.0
-
+    
     init() {
         motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
         motionManager.startDeviceMotionUpdates(to: .main) { motion, _ in
@@ -119,22 +32,22 @@ struct Poem_3_Who_View: View {
     @ObservedObject var motion = MotionManager()
     @State private var scatteredLines: [ScatteredLine] = []
     @State private var allGone = false
-
+    
     let lines: [String] = [
         "who",
         "writes",
         "this",
         "code",
-
+        
         "me?",
-
+        
         "who",
         "dreams",
         "in",
         "pixels",
-
+        
         "you?",
-
+        
         "who",
         "draws",
         "the",
@@ -142,27 +55,27 @@ struct Poem_3_Who_View: View {
         "between",
         "what is",
         "and what is generated",
-
+        
         "who",
         "creates",
         "now",
-
+        
         "who",
         "is",
         "creator",
-
+        
         "who",
         "was?",
         "who",
         "will be?",
-
+        
         "who?"
     ]
-
+    
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-
+            
             ForEach(scatteredLines) { line in
                 Text(line.text)
                     .font(.system(size: 36, weight: .medium))
@@ -174,26 +87,27 @@ struct Poem_3_Who_View: View {
                     .rotationEffect(line.rotation)
                     .animation(.easeInOut(duration: 0.5), value: motion.roll)
             }
-
-            VStack {
-                Spacer()
-                NavigationLink("Back", destination: MenuView())
-                    .padding()
-                    .background(Color.white.opacity(0.2))
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .padding()
-            }
+            
+//            VStack {
+//                Spacer()
+//                NavigationLink("Back", destination: MenuView())
+//                    .padding()
+//                    .background(Color.white.opacity(0.2))
+//                    .foregroundColor(.white)
+//                    .clipShape(RoundedRectangle(cornerRadius: 10))
+//                    .padding()
+//            }
         }
         .onAppear {
+            // Start presenting lines one by one
             Task {
                 for (i, line) in lines.enumerated() {
                     let initialScale: CGFloat = 5.0
                     let targetScale: CGFloat = 1.0
-
+                    
                     let randomX = CGFloat.random(in: 50...UIScreen.main.bounds.width - 50)
                     let randomY = CGFloat.random(in: 50...UIScreen.main.bounds.height - 150)
-
+                    
                     let scatter = ScatteredLine(
                         id: UUID(),
                         text: line,
@@ -202,22 +116,56 @@ struct Poem_3_Who_View: View {
                         rotation: .zero,
                         isVisible: false
                     )
-
+                    
                     scatteredLines.append(scatter)
-
+                    
                     try? await Task.sleep(nanoseconds: 2_000_000_000)
-
+                    
                     withAnimation(.easeOut(duration: 1.0)) {
                         scatteredLines[i].isVisible = true
                         scatteredLines[i].scale = targetScale
                     }
                 }
             }
+            
+            // Start drift timer with dynamic speed
+            Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
+                let screenWidth = UIScreen.main.bounds.width
+                let screenHeight = UIScreen.main.bounds.height-100
+
+                let horizontalPadding: CGFloat = 100 // to keep text fully on screen
+                let verticalPadding: CGFloat = 200
+
+                let normalizedRoll = max(min(motion.roll, .pi/4), -.pi/4) / (.pi/4)
+                let normalizedPitch = max(min(motion.pitch, .pi/4), -.pi/4) / (.pi/4)
+
+                let baseSpeed: CGFloat = 0.4
+                let maxBoost: CGFloat = 2.0
+
+                let rollSpeed = CGFloat(normalizedRoll) * baseSpeed * (1 + abs(CGFloat(normalizedRoll)) * maxBoost)
+                let pitchSpeed = CGFloat(normalizedPitch) * baseSpeed * (1 + abs(CGFloat(normalizedPitch)) * maxBoost)
+
+                for i in scatteredLines.indices {
+                    guard scatteredLines[i].isVisible else { continue }
+
+                    // Update positions
+                    scatteredLines[i].position.width += rollSpeed
+                    scatteredLines[i].position.height += pitchSpeed
+
+                    // Clamp to keep inside screen bounds
+                    scatteredLines[i].position.width = min(max(scatteredLines[i].position.width, horizontalPadding),
+                                                           screenWidth - horizontalPadding)
+                    scatteredLines[i].position.height = min(max(scatteredLines[i].position.height, verticalPadding),
+                                                            screenHeight - verticalPadding)
+                }
+            }
+
         }
+        
         .onChange(of: motion.accelerationMagnitude) {
             if motion.accelerationMagnitude > 2.0 && !allGone {
                 allGone = true
-
+                
                 for i in scatteredLines.indices {
                     withAnimation(.easeInOut(duration: 0.1).repeatCount(5, autoreverses: true)) {
                         scatteredLines[i].position.width += CGFloat.random(in: -30...30)
@@ -225,7 +173,7 @@ struct Poem_3_Who_View: View {
                         scatteredLines[i].rotation = Angle(degrees: Double.random(in: -15...15))
                     }
                 }
-
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     withAnimation(.easeOut(duration: 2.0)) {
                         scatteredLines.removeAll()

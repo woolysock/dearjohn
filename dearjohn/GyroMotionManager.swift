@@ -1,6 +1,6 @@
 //
 //  GyroMotionManager.swift
-//  why
+//  dearjohn
 //
 //  Created by Megan Donahue on 5/7/25.
 //  Copyright © 2025 meg&d design. All rights reserved.
