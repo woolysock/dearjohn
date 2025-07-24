@@ -60,6 +60,10 @@ struct Poem_3_Who_Redo_View: View {
     // Phase 3 states
     @State private var inPhase3 = false
     @State private var phase3Opacity: Double = 0.0
+    @State private var grayBoxAtTop = true
+    @State private var wordsInBoxCount = 0
+    @State private var showFinalPoem = false
+    @State private var hasCompletedFirstBox = false
     
     // Motion manager for gyroscope
     private let motionManager = CMMotionManager()
@@ -86,7 +90,16 @@ struct Poem_3_Who_Redo_View: View {
                     }
                 )
                 .onAppear {
+                    // Mark this poem as viewed
+                    var viewed = UserDefaults.standard.stringArray(forKey: "viewedPoems") ?? []
+                    if !viewed.contains("who") {
+                        viewed.append("who")
+                        UserDefaults.standard.set(viewed, forKey: "viewedPoems")
+                    }
+
+                    //start the animation of words typing
                     startTypingNextLine()
+                    
                     // Start motion updates for shake detection during Phase 1
                     startMotionUpdates()
                 }
@@ -94,39 +107,111 @@ struct Poem_3_Who_Redo_View: View {
                 GeometryReader { geometry in
                     TimelineView(.animation) { _ in
                         ZStack {
-                            ForEach(driftingWords) { word in
-                                Text(word.text)
-                                    .font(.system(size: word.fontSize, weight: .regular, design: .monospaced))
-                                    .foregroundColor(word.isFlashing ? .gray : .white)
-                                    .position(word.position)
-                            }
-                            
-                            // Phase 3 gray overlay for top half of screen
-                            if inPhase3 {
+                            // Phase 3 gray overlay with black border (behind everything)
+                            if inPhase3 && !showFinalPoem {
                                 GeometryReader { geo in
                                     VStack(spacing: 0) {
-                                        // Top 60% - gray overlay
-                                        Rectangle()
-                                            .fill(Color.gray)
-                                            .opacity(phase3Opacity * 0.6)
-                                            .frame(height: geo.size.height * 0.6)
-                                        
-                                        // Bottom 40% - transparent
-                                        Rectangle()
-                                            .fill(Color.clear)
-                                            .frame(height: geo.size.height * 0.4)
+                                        if grayBoxAtTop {
+                                            // Top 60% - gray overlay with black border at bottom
+                                            VStack(spacing: 0) {
+                                                Rectangle()
+                                                    .fill(Color.gray)
+                                                    .opacity(phase3Opacity * 0.6)
+                                                    .frame(height: geo.size.height * 0.6 - 10)
+                                                Rectangle()
+                                                    .fill(Color.black)
+                                                    .frame(height: 10)
+                                            }
+                                            
+                                            // Bottom 40% - transparent
+                                            Rectangle()
+                                                .fill(Color.clear)
+                                                .frame(height: geo.size.height * 0.4)
+                                        } else {
+                                            // Top 40% - transparent
+                                            Rectangle()
+                                                .fill(Color.clear)
+                                                .frame(height: geo.size.height * 0.4)
+                                            
+                                            // Bottom 60% - gray overlay with black border at top
+                                            VStack(spacing: 0) {
+                                                Rectangle()
+                                                    .fill(Color.black)
+                                                    .frame(height: 10)
+                                                Rectangle()
+                                                    .fill(Color.gray)
+                                                    .opacity(phase3Opacity * 0.6)
+                                                    .frame(height: geo.size.height * 0.6 - 10)
+                                            }
+                                        }
                                     }
                                 }
-                                
-                                // Instruction text below the gray box
+                            }
+                            
+                            // Drifting words (above gray overlay)
+                            if !showFinalPoem {
+                                ForEach(driftingWords) { word in
+                                    Text(word.text)
+                                        .font(.system(size: word.fontSize, weight: .regular, design: .monospaced))
+                                        .foregroundColor(word.isFlashing ? .gray : .white)
+                                        .position(word.position)
+                                }
+                            }
+                            
+                            // Final poem (above everything)
+                            if showFinalPoem {
+                                VStack(spacing: 0) {
+                                    // "you?" positioned halfway between top and poem
+                                    VStack {
+                                        Spacer()
+                                            .frame(height: 150) // Distance from top of screen
+                                        Text("you?")
+                                            .font(.system(size: 30, weight: .regular, design: .monospaced))
+                                            .foregroundColor(.white)
+                                            .padding(.leading, 40) // Further in from left
+                                        Spacer()
+                                            .frame(height: 150) // Distance to poem (creating halfway point)
+                                    }
+                                    
+                                    // Poem text
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        ForEach(fullLines.indices, id: \.self) { index in
+                                            if !fullLines[index].isEmpty {
+                                                Text(fullLines[index])
+                                                    .font(.system(size: 12, weight: .regular, design: .monospaced))
+                                                    .foregroundColor(Color.gray)
+                                            }
+                                        }
+                                    }
+                                    .padding(.leading, 80) // Even bigger left margin for poem
+                                    .padding(.horizontal, 20)
+                                    
+                                    Spacer() // Push everything toward top-middle of screen
+                                }
+                            }
+                            
+                            // Instruction text (above gray overlay but below final poem)
+                            if inPhase3 && !showFinalPoem {
                                 VStack {
-                                    Spacer()
-                                        .frame(height: geometry.size.height * 0.65) // Position just below gray area
-                                    Text("can you catch all the words in the gray box?")
-                                        .font(.system(size: 10, weight: .regular, design: .monospaced))
-                                        .foregroundColor(.white)
-                                        .opacity(phase3Opacity)
-                                    Spacer()
+                                    if grayBoxAtTop {
+                                        // Text below the gray box
+                                        Spacer()
+                                            .frame(height: geometry.size.height * 0.6)
+                                        Text("can you catch all the words in the gray box?")
+                                            .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                            .foregroundColor(.white)
+                                            .opacity(phase3Opacity)
+                                        Spacer()
+                                    } else {
+                                        // Text above the gray box
+                                        Spacer()
+                                            .frame(height: geometry.size.height * 0.3)
+                                        Text("too slow. try again. 😉")
+                                            .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                            .foregroundColor(.white)
+                                            .opacity(phase3Opacity)
+                                        Spacer()
+                                    }
                                 }
                             }
                             
@@ -255,19 +340,15 @@ struct Poem_3_Who_Redo_View: View {
         
         driftingWords = tempDriftingWords
         
-        // Show back button after 10 seconds
+        // Show back button and Start Phase 3 after 10 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
             withAnimation(.easeIn(duration: 0.5)) {
                 showBackButton = true
+                startPhase3()
             }
         }
-        
-        // Start Phase 3 after 15 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            startPhase3()
-        }
     }
-
+    
     func startDriftLoop(in size: CGSize) {
         driftTimer?.invalidate()
         driftTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { _ in
@@ -372,6 +453,11 @@ struct Poem_3_Who_Redo_View: View {
             }
             
             driftingWords = updatedWords
+            
+            // Phase 3: Check if all words are in the gray box
+            if inPhase3 && !showFinalPoem {
+                checkWordsInGrayBox(screenSize: size)
+            }
         }
     }
     
@@ -399,9 +485,45 @@ struct Poem_3_Who_Redo_View: View {
     func startPhase3() {
         inPhase3 = true
         
+        // Show back button when Phase 3 starts
+        withAnimation(.easeIn(duration: 0.5)) {
+            showBackButton = true
+        }
+        
         // Slowly fade in the gray overlay over 3 seconds
         withAnimation(.easeInOut(duration: 3.0)) {
             phase3Opacity = 1.0
+        }
+    }
+    
+    func checkWordsInGrayBox(screenSize: CGSize) {
+        let grayBoxTop: CGFloat
+        let grayBoxBottom: CGFloat
+        
+        if grayBoxAtTop {
+            grayBoxTop = 0
+            // Use the black border edge as the true boundary (10px less than visual box)
+            grayBoxBottom = screenSize.height * 0.6 - 10
+        } else {
+            // Use the black border edge as the true boundary (10px more than visual box)
+            grayBoxTop = screenSize.height * 0.4 + 10
+            grayBoxBottom = screenSize.height
+        }
+        
+        let wordsInBox = driftingWords.filter { word in
+            word.position.y >= grayBoxTop && word.position.y <= grayBoxBottom
+        }
+        
+        if wordsInBox.count == driftingWords.count {
+            // All words are in the gray box
+            if !hasCompletedFirstBox {
+                // First time: Move box to bottom instantly
+                hasCompletedFirstBox = true
+                grayBoxAtTop = false
+            } else {
+                // Second time: Show final poem
+                showFinalPoem = true
+            }
         }
     }
     
@@ -456,8 +578,12 @@ struct Poem_3_Who_Redo_View: View {
             // Phase 2: Jump to Phase 3
             startPhase3()
         } else {
-            // Phase 3: Return to main menu
-            presentationMode.wrappedValue.dismiss()
+            // Phase 3: Return to main menu (unless showing final poem)
+            if showFinalPoem {
+                presentationMode.wrappedValue.dismiss()
+            } else {
+                presentationMode.wrappedValue.dismiss()
+            }
         }
     }
 
@@ -503,10 +629,10 @@ private struct Phase1View: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 9) {
             ForEach(displayedLines.indices, id: \.self) { lineIndex in
                 HStack(spacing: 4) {
-                    let words = displayedLines[lineIndex].components(separatedBy: " ")
+                    let words = displayedLines[lineIndex].components(separatedBy: "")
                     ForEach(words.indices, id: \.self) { wordIndex in
                         let word = words[wordIndex]
                         if !word.isEmpty {
@@ -531,7 +657,7 @@ private struct Phase1View: View {
                 }
             }
             if isTyping {
-                Text(currentText + "▌")
+                Text(currentText + "▌ ")
                     .font(.system(size: 20, weight: .regular, design: .monospaced))
                     .foregroundColor(.white)
             }

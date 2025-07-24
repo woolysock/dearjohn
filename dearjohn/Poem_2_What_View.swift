@@ -130,7 +130,7 @@ struct Poem_2_What_View: View {
                                 .scaleEffect(questionMarkScale)
                                 .opacity(0.9)
                                 .onTapGesture {
-                                    withAnimation(.easeOut(duration: 0.8)) {
+                                    withAnimation(.easeOut(duration: 0.5)) {
                                         //questionMarkTapped = true
                                         //navigateToMenu = true
                                         dismiss()
@@ -141,58 +141,22 @@ struct Poem_2_What_View: View {
                                     restartTimer?.invalidate()
                                 }
                         } else {
-                            
-
-                            // SHOWED THE TEXT "WHAT" AFTER TAPPING
-//                            Text("what?")
-//                                .font(.custom("Futura", size: 60))
-//                                .foregroundColor(.white)
-//                                .transition(.opacity)
-//                                .onTapGesture {
-//                                    restartTimer?.invalidate()
-//                                    restartPoem()
-//                                }
-//                                .onAppear {
-//                                    // Start auto-restart timer
-//                                    restartTimer?.invalidate()
-//                                    restartTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
-//                                        restartPoem()
-//                                    }
-//                                }
-                        }
+                                                    }
                     }
                 }
-//                if showQuestionMark {
-//                    Group {
-//                        if !questionMarkTapped {
-//                            Text("?")
-//                                .font(.custom("Futura", size: 200))
-//                                .foregroundColor(.white)
-//                                .scaleEffect(questionMarkScale)
-//                                .opacity(0.9)
-//                                .onTapGesture {
-//                                    withAnimation(.easeOut(duration: 0.5)) {
-//                                        questionMarkTapped = true
-//                                    }
-//                                }
-//                        } else {
-//                            // When the question mark disappears, show "what?"
-//                            Text("what?")
-//                                .font(.custom("Futura", size: 60))
-//                                .foregroundColor(.white)
-//                                .transition(.opacity)
-//                                .onTapGesture {
-//                                    navigateToMenu = true
-//                                }
-//                        }
-//                    }
-//                    .animation(.easeInOut, value: questionMarkTapped)
-//                }
             }
             .onAppear {
                 wordStates = Array(repeating: WordState(), count: poemWords.count)
                 showFinalWords = Array(repeating: false, count: poemWords.count)
                 wordZoomOutStates = Array(repeating: false, count: poemWords.count)
+                
+                // Mark this poem as viewed
+                var viewed = UserDefaults.standard.stringArray(forKey: "viewedPoems") ?? []
+                if !viewed.contains("what") {
+                    viewed.append("what")
+                    UserDefaults.standard.set(viewed, forKey: "viewedPoems")
+                }
+
             }
             .navigationDestination(isPresented: $navigateToMenu) {
                 MenuView() // Your MenuView
@@ -318,7 +282,14 @@ struct Poem_2_What_View: View {
         showQuestionMark = false
         navigateToMenu = false
         
-       
+        // TO DO ADD SOMETHING FUN HERE? INSTEAD OF THE ? COMING BACK 
+        
+        // Restart poem logic — call your real restart function here
+ 
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            showQuestionMark = true
+        }
     }
 
     

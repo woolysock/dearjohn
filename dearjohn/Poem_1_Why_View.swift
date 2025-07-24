@@ -46,8 +46,6 @@ struct Poem_1_Why_View: View {
         PoemLine(text: "  code will    "),
         PoemLine(text: "   happily      write write write"),
         PoemLine(text: "ITSELF    for ME"),
-//        PoemLine(text: "for"),
-//        PoemLine(text: "ME"),
         PoemLine(text: "for I"),
         PoemLine(text: "happily happily happily happily happily happily"),
         PoemLine(text: "ASK"),
@@ -114,12 +112,12 @@ struct Poem_1_Why_View: View {
         }
         .navigationBarBackButtonHidden(true)
         .onAppear {
-            // Trigger the animation on load
+            // Trigger the entry animation
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(name: .triggerEntryAnimation, object: nil)
             }
 
-            // Show swipe hint if user hasn't interacted
+            // Show swipe hint after 3s if no swipe
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 if !userHasSwiped {
                     withAnimation(.easeInOut(duration: 1.0)) {
@@ -127,6 +125,9 @@ struct Poem_1_Why_View: View {
                     }
                 }
             }
+
+            // Mark this poem as viewed
+            markPoemViewed("why")
         }
     }
 
@@ -144,7 +145,17 @@ struct Poem_1_Why_View: View {
             entryDirection = EntryDirection.randomReversed
         }
     }
+
+    // Save poem view state
+    private func markPoemViewed(_ id: String) {
+        var viewed = UserDefaults.standard.stringArray(forKey: "viewedPoems") ?? []
+        if !viewed.contains(id) {
+            viewed.append(id)
+            UserDefaults.standard.set(viewed, forKey: "viewedPoems")
+        }
+    }
 }
+
 
 struct PoemLineViewer: View {
     let text: String
