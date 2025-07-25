@@ -64,6 +64,9 @@ struct Poem_3_Who_Redo_View: View {
     @State private var wordsInBoxCount = 0
     @State private var showFinalPoem = false
     @State private var hasCompletedFirstBox = false
+    @State private var showTiltHint = false
+    @State private var userTriedInteraction = false
+
     
     // Motion manager for gyroscope
     private let motionManager = CMMotionManager()
@@ -155,13 +158,22 @@ struct Poem_3_Who_Redo_View: View {
                                         .font(.system(size: word.fontSize, weight: .regular, design: .monospaced))
                                         .foregroundColor(word.isFlashing ? .gray : .white)
                                         .position(word.position)
+                                        .onTapGesture {
+                                            handleUserInteraction()
+                                        }
+                                        .gesture(
+                                            DragGesture(minimumDistance: 0)
+                                                .onChanged { _ in
+                                                    handleUserInteraction()
+                                                }
+                                        )
                                 }
                             }
                             
                             // Final poem (above everything)
                             if showFinalPoem {
                                 VStack(spacing: 0) {
-                                    // "you?" positioned halfway between top and poem
+                                    // "you!" positioned halfway between top and poem
                                     VStack {
                                         Spacer()
                                             .frame(height: 150) // Distance from top of screen
@@ -197,10 +209,17 @@ struct Poem_3_Who_Redo_View: View {
                                         // Text below the gray box
                                         Spacer()
                                             .frame(height: geometry.size.height * 0.6)
-                                        Text("can you catch all the words in the gray box?")
+                                        Text("can you move all the words to the gray box?")
                                             .font(.system(size: 10, weight: .regular, design: .monospaced))
                                             .foregroundColor(.white)
                                             .opacity(phase3Opacity)
+                                        if showTiltHint {
+                                            Text("(try tilting the device)")
+                                                .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                                .foregroundColor(.white)
+                                                .opacity(phase3Opacity)
+                                                .transition(.opacity)
+                                        }
                                         Spacer()
                                     } else {
                                         // Text above the gray box
@@ -582,11 +601,11 @@ struct Poem_3_Who_Redo_View: View {
             if showFinalPoem {
                 presentationMode.wrappedValue.dismiss()
             } else {
-                presentationMode.wrappedValue.dismiss()
+                showFinalPoem = true
             }
         }
     }
-
+    
     // MARK: - Helper Functions
     
     // Helper function to calculate text size for a given font size
@@ -595,6 +614,15 @@ struct Poem_3_Who_Redo_View: View {
         let attributes: [NSAttributedString.Key: Any] = [.font: font]
         let size = (text as NSString).size(withAttributes: attributes)
         return size
+    }
+    
+    func handleUserInteraction() {
+        if inPhase3 && !userTriedInteraction && !showFinalPoem {
+            userTriedInteraction = true
+            withAnimation(.easeIn(duration: 0.3)) {
+                showTiltHint = true
+            }
+        }
     }
 
     // MARK: - Word Position Key

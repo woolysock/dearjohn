@@ -9,15 +9,21 @@
 import SwiftUI
 
 struct MenuView: View {
-    
     @State private var stackHeight: CGFloat = 0
     @State private var imageHeight: CGFloat = 0
+    @State private var titleStackSpacing: CGFloat = 0
     @State private var viewedPoems: Set<String> = []
-
+    //@State private var viewHeight: CGFloat = 0
+    @State private var copyrightText: String = "©2025 meg&d design"
+    
     var body: some View {
         NavigationView {
             GeometryReader { geo in
                 let desiredBottomY = geo.size.height * 0.4
+                let isLandscape = geo.size.width > geo.size.height
+                let topInset = geo.safeAreaInsets.top
+
+               // let imageWidth = min(geo.size.width * 0.5, geo.size.height * 0.8)
 
                 ZStack {
                     // Background: Top 40% black, bottom 60% white
@@ -25,97 +31,115 @@ struct MenuView: View {
                         Color.black
                             .frame(height: desiredBottomY)
                         Color.white
-                            .frame(height: geo.size.height * 0.6)
+                            .frame(height: geo.size.height + topInset - desiredBottomY)
                     }
                     .ignoresSafeArea()
 
                     // Title + About
-                    VStack(spacing: 0) {
-                        Image("title-white")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geo.size.width * 0.5)
-                            .background(
-                                GeometryReader { imgGeo in
-                                    Color.clear
-                                        .onAppear {
-                                            imageHeight = imgGeo.size.height
-                                        }
-                                        .onChange(of: imgGeo.size.height) {
-                                            imageHeight = imgGeo.size.height
-                                        }
-                                }
-                            )
-
-                        Image("title-black-flip")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geo.size.width * 0.5)
-
-                        Spacer().frame(height: 30)
-
-                        Text("a digital book")
-                            .font(.custom("Futura", size: 22))
-                            .foregroundColor(.black)
-                        Text("of poems")
-                            .font(.custom("Futura", size: 22))
-                            .foregroundColor(.black)
-
-                        Spacer().frame(height: 100)
-
-                        NavigationLink(destination: AboutArtist()) {
-                            poemButton(title: "about", b_size: 80, isViewed: false)
+                    //Responsive Layout
+                    
+                    
+                    ZStack {
+                        // Images positioned to align first image bottom with horizon
+                        VStack(spacing: 0) {
+                            Image("title-white")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: min(geo.size.width * 0.5, desiredBottomY))
+                                .background(
+                                    GeometryReader { imgGeo in
+                                        Color.clear
+                                            .onAppear {
+                                                if (imgGeo.size.height > 10) {
+                                                    imageHeight = imgGeo.size.height
+                                                    titleStackSpacing = imageHeight * 0.3
+                                                }
+                                            }
+                                            .onChange(of: imgGeo.size.height) {
+                                                if (imgGeo.size.height > 10) {
+                                                    imageHeight = imgGeo.size.height
+                                                    titleStackSpacing = imageHeight * 0.3
+                                                }
+                                            }
+                                    }
+                                )
+                            
+                            Image("title-black-flip")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: min(geo.size.width * 0.5, desiredBottomY))
                         }
-
-                        Spacer().frame(height: 10)
-
-                        Text("©2025 meg&d design")
-                            .font(.custom("Futura", size: 8))
-                            .foregroundColor(.gray)
+                        .padding(.leading, isLandscape ? 100 : 0)
+                        .position(
+                            x: isLandscape ? geo.size.width * 2/5 : geo.size.width * 2/3,
+                            y: isLandscape ? desiredBottomY : (desiredBottomY + topInset) - (imageHeight / 2) + 10
+                        )
+                        .ignoresSafeArea()
+                        
+                        // Text and about button positioned below the horizon
+                        VStack(spacing: 0) {
+                            Text("a digital book")
+                                .font(.custom("Futura", size: 22))
+                                .foregroundColor(.black)
+                            Text("of poems")
+                                .font(.custom("Futura", size: 22))
+                                .foregroundColor(.black)
+                            //Text("x: \(geo.size.width) y: \(geo.size.height)")
+                            
+                            Spacer().frame(height: isLandscape ? titleStackSpacing : titleStackSpacing * 5)
+                            
+                            NavigationLink(destination: AboutArtist()) {
+                                poemButton(title: "about", b_size: geo.size.height * 0.1, isViewed: false)
+                            }
+                            
+                            Spacer().frame(height: 10)
+                            
+                            Text(copyrightText)
+                                .font(.custom("Futura", size: 8))
+                                .foregroundColor(.gray)
+                            //Spacer()
+                        }
+                        //.border(Color.black, width: 2)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .position(
+                            x: geo.size.width * 2/3,
+                            y: desiredBottomY + ((geo.size.height - desiredBottomY) / 2)
+                            
+                        )
                     }
-                    .background(
-                        GeometryReader { stackGeo in
-                            Color.clear
-                                .onAppear {
-                                    stackHeight = stackGeo.size.height
-                                }
-                                .onChange(of: stackGeo.size.height) {
-                                    stackHeight = stackGeo.size.height
-                                }
-                        }
-                    )
-                    .position(
-                        x: geo.size.width * 0.65,
-                        y: desiredBottomY + (stackHeight / 2) - imageHeight
-                    )
-                    .ignoresSafeArea()
-
+                    
+                    
+                    
                     // Poem Buttons
                     VStack {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 1), spacing: 10) {
+                            NavigationLink(destination: Poem_3_Who_Redo_View()) {
+                                poemButton(title: "who", b_size: 100, isViewed: viewedPoems.contains("who"))
+                            }
                             NavigationLink(destination: Poem_1_Why_View()) {
                                 poemButton(title: "why", b_size: 100, isViewed: viewedPoems.contains("why"))
                             }
                             NavigationLink(destination: Poem_2_What_View()) {
                                 poemButton(title: "what", b_size: 100, isViewed: viewedPoems.contains("what"))
                             }
-                            NavigationLink(destination: Poem_3_Who_Redo_View()) {
-                                poemButton(title: "who", b_size: 100, isViewed: viewedPoems.contains("who"))
-                            }
-//                            NavigationLink(destination: Poem_4_How_View()) {
-//                                poemButton(title: "how", b_size: 100, isViewed: viewedPoems.contains("how"))
-//                            }
+                            
                         }
                         .position(
-                            x: 70,
-                            y: geo.size.height - 50 - (400 + (10 * 3)) / 2
+                            x: isLandscape ? 150 : 70,
+                            y: isLandscape ? geo.size.height / 2 : (((geo.size.height + topInset) / 2 ) + 120)
                         )
                     }
+                    .ignoresSafeArea()
+                    
+                    
                 }
                 .navigationBarHidden(true)
                 .onAppear {
                     loadViewedPoems()
                 }
+//                .onChange(of: geo.size) {
+//                    copyrightText = "\(geo.size.height) - \(topInset) - \(desiredBottomY)"
+//                }
             }
         }
     }
