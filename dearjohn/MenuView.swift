@@ -113,14 +113,14 @@ struct MenuView: View {
                     // Poem Buttons
                     VStack {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 1), spacing: 10) {
-                            NavigationLink(destination: Poem_3_Who_Redo_View()) {
-                                poemButton(title: "who", b_size: 100, isViewed: viewedPoems.contains("who"))
-                            }
                             NavigationLink(destination: Poem_1_Why_View()) {
                                 poemButton(title: "why", b_size: 100, isViewed: viewedPoems.contains("why"))
                             }
                             NavigationLink(destination: Poem_2_What_View()) {
                                 poemButton(title: "what", b_size: 100, isViewed: viewedPoems.contains("what"))
+                            }
+                            NavigationLink(destination: Poem_3_Who_Redo_View()) {
+                                poemButton(title: "who", b_size: 100, isViewed: viewedPoems.contains("who"))
                             }
                             
                         }
@@ -135,6 +135,10 @@ struct MenuView: View {
                 }
                 .navigationBarHidden(true)
                 .onAppear {
+                    if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
+                        UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
+                        UserDefaults.standard.removeObject(forKey: "viewedPoems")
+                    }
                     loadViewedPoems()
                 }
 //                .onChange(of: geo.size) {

@@ -123,7 +123,7 @@ struct Poem_3_Who_Redo_View: View {
                                                     .frame(height: geo.size.height * 0.6 - 10)
                                                 Rectangle()
                                                     .fill(Color.black)
-                                                    .frame(height: 10)
+                                                    .frame(height: 30)
                                             }
                                             
                                             // Bottom 40% - transparent
@@ -522,10 +522,10 @@ struct Poem_3_Who_Redo_View: View {
         if grayBoxAtTop {
             grayBoxTop = 0
             // Use the black border edge as the true boundary (10px less than visual box)
-            grayBoxBottom = screenSize.height * 0.6 - 10
+            grayBoxBottom = screenSize.height * 0.6 - 20
         } else {
             // Use the black border edge as the true boundary (10px more than visual box)
-            grayBoxTop = screenSize.height * 0.4 + 10
+            grayBoxTop = screenSize.height * 0.4 + 20
             grayBoxBottom = screenSize.height
         }
         

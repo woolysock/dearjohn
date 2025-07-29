@@ -35,12 +35,12 @@ struct WordPositionKey: PreferenceKey {
 
 // MARK: - Main View
 struct Poem_2_What_View: View {
-    @Environment(\.dismiss) var dismiss
-    
+    @Environment(\.presentationMode) var presentationMode
+
     let poemWords = [
-        "what", "is", "the", "essence", "of", "creation",
-        "is", "it", "the", "thinking", "or", "the",
-        "doing", "the", "sharing", "with", "others", "?"
+        "what", "is", "the", "essence", "of", "creation?",
+        "is", "it", "the", "thinking?", "or", "the",
+        "doing?", "or", "the", "sharing", "with", "others", "?"
     ]
     
     @State private var wordStates: [WordState] = []
@@ -54,6 +54,14 @@ struct Poem_2_What_View: View {
     @State private var questionMarkTapped = false
     @State private var navigateToMenu = false
     @State private var restartTimer: Timer?
+    @State private var wordPositions: [Int: CGPoint] = [:]
+    @State private var showMenu = true
+    
+    // for question mark
+    @State private var questionMarkPulse: CGFloat = 1.0
+    @State private var showHintText = false
+    @State private var hintTextOpacity: Double = 0.0
+
     
     struct WordState {
         var offset: CGSize = CGSize(width: 0, height: -600)
@@ -62,7 +70,7 @@ struct Poem_2_What_View: View {
     }
     
     var body: some View {
-        NavigationView {  // Embed in NavigationView
+        NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
@@ -124,25 +132,67 @@ struct Poem_2_What_View: View {
                 if showQuestionMark {
                     Group {
                         if !questionMarkTapped {
-                            Text("?")
-                                .font(.custom("Futura", size: 200))
-                                .foregroundColor(.white)
-                                .scaleEffect(questionMarkScale)
-                                .opacity(0.9)
-                                .onTapGesture {
-                                    withAnimation(.easeOut(duration: 0.5)) {
-                                        //questionMarkTapped = true
-                                        //navigateToMenu = true
-                                        dismiss()
+                            ZStack {
+                                // Question mark stays centered
+                                Text("?")
+                                    .font(.custom("Futura", size: 200))
+                                    .foregroundColor(.white)
+                                    .scaleEffect(questionMarkScale * questionMarkPulse)
+                                    .opacity(0.9)
+                                    .onTapGesture {
+                                        withAnimation(.easeOut(duration: 0.5)) {
+                                            presentationMode.wrappedValue.dismiss()
+                                        }
+                                    }
+                                    .onAppear {
+                                        restartTimer?.invalidate()
+                                        
+                                        // Start pulsing after a brief pause
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                            startQuestionMarkAnimation()
+                                        }
+                                        
+                                        // Show hint text after longer pause
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                            showHintText = true
+                                            withAnimation(.easeInOut(duration: 1.0)) {
+                                                hintTextOpacity = 0.6
+                                            }
+                                        }
+                                    }
+                                
+                                // Hint text positioned below without affecting question mark
+                                if showHintText {
+                                    VStack {
+                                        Spacer()
+                                        Text("tap to continue")
+                                            .font(.custom("Futura", size: 16))
+                                            .foregroundColor(.white)
+                                            .opacity(hintTextOpacity)
+                                            .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: hintTextOpacity)
+                                            .offset(y: 120) // Position it below the question mark
+                                        Spacer()
                                     }
                                 }
-                                .onAppear {
-                                    // Cancel any old timers just in case
-                                    restartTimer?.invalidate()
-                                }
-                        } else {
-                                                    }
+                            }
+                        }
                     }
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if showMenu {
+                    Button(action: {
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color.black.opacity(0.6))
+                            .clipShape(Circle())
+                    }
+                    .padding(.top, 50)
+                    .padding(.leading, 20)
                 }
             }
             .onAppear {
@@ -150,17 +200,16 @@ struct Poem_2_What_View: View {
                 showFinalWords = Array(repeating: false, count: poemWords.count)
                 wordZoomOutStates = Array(repeating: false, count: poemWords.count)
                 
-                // Mark this poem as viewed
                 var viewed = UserDefaults.standard.stringArray(forKey: "viewedPoems") ?? []
                 if !viewed.contains("what") {
                     viewed.append("what")
                     UserDefaults.standard.set(viewed, forKey: "viewedPoems")
                 }
-
             }
-            .navigationDestination(isPresented: $navigateToMenu) {
-                MenuView() // Your MenuView
-            }
+        }
+        .navigationBarBackButtonHidden(true)
+        .navigationDestination(isPresented: $navigateToMenu) {
+            MenuView()
         }
     }
     
@@ -207,7 +256,7 @@ struct Poem_2_What_View: View {
             }
         }
     }
-    
+
     // MARK: - Phase 2 Animation (Stack and Capture)
     private func animateFinalWords() {
         for index in poemWords.indices {
@@ -218,28 +267,33 @@ struct Poem_2_What_View: View {
             }
         }
         
-        // After all words are visible, start phase 3
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(poemWords.count) * 0.15 + 2.0) {
             withAnimation {
                 phase3Started = true
+                let screenCenter = CGPoint(x: UIScreen.main.bounds.width / 2, y: UIScreen.main.bounds.height / 2)
+                for index in poemWords.indices {
+                    if let position = wordPositions[index] {
+                        let dx = position.x - screenCenter.x
+                        let dy = position.y - screenCenter.y
+                        wordStates[index].offset = CGSize(width: dx, height: dy)
+                    }
+                }
             }
             animateZoomOut()
         }
     }
-    
+
     // MARK: - Phase 3 Animation (Zoom and Fly to Center)
     private func animateZoomOut() {
         for index in poemWords.indices {
             let delay = Double.random(in: 0.2...(2.0))
             
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                // First, a slight wiggle
                 withAnimation(.easeInOut(duration: 0.2).repeatCount(3, autoreverses: true)) {
                     wordStates[index].offset.width += 10
                 }
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    // Then curve toward center
                     let randomCurveX = CGFloat.random(in: -150...150)
                     let randomCurveY = CGFloat.random(in: -300...300)
                     
@@ -264,33 +318,29 @@ struct Poem_2_What_View: View {
             }
         }
     }
-    
-    // MARK: - Save Word Position After Phase 2
+
+    // MARK: - Save Word Position
     private func saveWordPosition(index: Int, point: CGPoint) {
-        guard index < wordStates.count else { return }
-        wordStates[index].offset = CGSize(
-            width: point.x - UIScreen.main.bounds.width / 2,
-            height: point.y - UIScreen.main.bounds.height / 2
-        )
+        wordPositions[index] = point
     }
 
-
-    // Function to restart poem
+    // MARK: - Optional restart hook
     private func restartPoem() {
-        // Reset whatever states are needed to restart the poem
         questionMarkTapped = false
         showQuestionMark = false
         navigateToMenu = false
         
-        // TO DO ADD SOMETHING FUN HERE? INSTEAD OF THE ? COMING BACK 
-        
-        // Restart poem logic — call your real restart function here
- 
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             showQuestionMark = true
+        }
+    }
+    
+    private func startQuestionMarkAnimation() {
+        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+            questionMarkPulse = 1.2
         }
     }
 
     
 }
+
