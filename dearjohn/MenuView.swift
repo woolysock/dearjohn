@@ -72,7 +72,8 @@ struct MenuView: View {
                         .padding(.leading, isLandscape ? 100 : 0)
                         .position(
                             x: isLandscape ? geo.size.width * 2/5 : geo.size.width * 2/3,
-                            y: isLandscape ? desiredBottomY : (desiredBottomY + topInset) - (imageHeight / 2) + 10
+                            y: desiredBottomY
+                            //y: isLandscape ? desiredBottomY : (desiredBottomY + topInset) - (imageHeight / 2) + 10
                         )
                         .ignoresSafeArea()
                         
@@ -86,7 +87,7 @@ struct MenuView: View {
                                 .foregroundColor(.black)
                             //Text("x: \(geo.size.width) y: \(geo.size.height)")
                             
-                            Spacer().frame(height: isLandscape ? titleStackSpacing : titleStackSpacing * 5)
+                            Spacer().frame(height: isLandscape ? titleStackSpacing : titleStackSpacing * 2)
                             
                             NavigationLink(destination: AboutArtist()) {
                                 poemButton(title: "about", b_size: geo.size.height * 0.1, isViewed: false)
@@ -103,7 +104,7 @@ struct MenuView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         .position(
                             x: geo.size.width * 2/3,
-                            y: desiredBottomY + ((geo.size.height - desiredBottomY) / 2)
+                            y: desiredBottomY + (isLandscape ? 20 : imageHeight) + ((geo.size.height - desiredBottomY-imageHeight) / 2)
                             
                         )
                     }

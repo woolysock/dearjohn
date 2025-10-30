@@ -61,7 +61,34 @@ struct Poem_2_What_View: View {
     @State private var questionMarkPulse: CGFloat = 1.0
     @State private var showHintText = false
     @State private var hintTextOpacity: Double = 0.0
+    @State private var phase4Started = false
+    @State private var babyQuestionMarks: [BabyQuestionMark] = []
+    @State private var showFinalPoem = false
+    @State private var finalPoemLines: [String] = [
+        "what",
+        "is the",
+        "essence",
+        "of",
+        "creation,",
+        "if its",
+        "not",
+        "just",
+        "re-creation?"
+    ]
+    @State private var finalPoemOpacities: [Double] = []
 
+    struct BabyQuestionMark {
+        var id = UUID()
+        var position: CGPoint
+        var velocity: CGPoint
+        var size: CGFloat
+        var opacity: Double
+        var rotationSpeed: Double
+        var currentRotation: Double = 0
+        var pathAngle: Double = 0
+        var pathRadius: CGFloat = 0
+        var pathSpeed: Double = 0
+    }
     
     struct WordState {
         var offset: CGSize = CGSize(width: 0, height: -600)
@@ -140,9 +167,7 @@ struct Poem_2_What_View: View {
                                     .scaleEffect(questionMarkScale * questionMarkPulse)
                                     .opacity(0.9)
                                     .onTapGesture {
-                                        withAnimation(.easeOut(duration: 0.5)) {
-                                            presentationMode.wrappedValue.dismiss()
-                                        }
+                                        startPhase4()
                                     }
                                     .onAppear {
                                         restartTimer?.invalidate()
@@ -162,7 +187,7 @@ struct Poem_2_What_View: View {
                                     }
                                 
                                 // Hint text positioned below without affecting question mark
-                                if showHintText {
+                                if showHintText && !phase4Started {
                                     VStack {
                                         Spacer()
                                         Text("tap to continue")
@@ -178,6 +203,33 @@ struct Poem_2_What_View: View {
                         }
                     }
                 }
+                
+                // Phase 4: Baby question marks spinning around
+                if phase4Started && !showFinalPoem {
+                    ForEach(babyQuestionMarks, id: \.id) { babyQM in
+                        Text("?")
+                            .font(.custom("Futura", size: babyQM.size))
+                            .foregroundColor(.white)
+                            .opacity(babyQM.opacity)
+                            .rotationEffect(.degrees(babyQM.currentRotation))
+                            .position(babyQM.position)
+                    }
+                }
+
+                // Phase 5: Final poem text
+                if showFinalPoem {
+                    VStack(spacing: 8) {
+                        ForEach(0..<finalPoemLines.count, id: \.self) { index in
+                            Text(finalPoemLines[index])
+                                .font(.custom("Futura", size: 28))
+                                .foregroundColor(.white)
+                                .opacity(finalPoemOpacities.indices.contains(index) ? finalPoemOpacities[index] : 0)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+
             }
             .overlay(alignment: .topLeading) {
                 if showMenu {
@@ -199,6 +251,7 @@ struct Poem_2_What_View: View {
                 wordStates = Array(repeating: WordState(), count: poemWords.count)
                 showFinalWords = Array(repeating: false, count: poemWords.count)
                 wordZoomOutStates = Array(repeating: false, count: poemWords.count)
+                finalPoemOpacities = Array(repeating: 0.0, count: finalPoemLines.count)
                 
                 var viewed = UserDefaults.standard.stringArray(forKey: "viewedPoems") ?? []
                 if !viewed.contains("what") {
@@ -335,12 +388,167 @@ struct Poem_2_What_View: View {
         }
     }
     
+    // Add this new function to handle the question mark animation:
     private func startQuestionMarkAnimation() {
         withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
             questionMarkPulse = 1.2
         }
     }
 
-    
-}
+    // Phase 4: Explode question mark into spinning babies
+    private func startPhase4() {
+        phase4Started = true
+        showQuestionMark = false
+        
+        // Create 100 baby question marks exploding from center
+        let screenWidth = UIScreen.main.bounds.width
+        let screenHeight = UIScreen.main.bounds.height
+        let centerX = screenWidth / 2
+        let centerY = screenHeight / 2
+        
+        for _ in 0..<100 {
+            // Random explosion direction
+            let explosionAngle = Double.random(in: 0...360) * .pi / 180
+            let explosionSpeed = CGFloat.random(in: 100...400)
+            
+            let babyQM = BabyQuestionMark(
+                position: CGPoint(x: centerX, y: centerY), // Start at center
+                velocity: CGPoint(
+                    x: CGFloat(cos(explosionAngle)) * explosionSpeed,
+                    y: CGFloat(sin(explosionAngle)) * explosionSpeed
+                ),
+                size: CGFloat.random(in: 12...30),
+                opacity: Double.random(in: 0.6...1.0),
+                rotationSpeed: Double.random(in: -15...15), // Individual spin speed
+                pathRadius: CGFloat.random(in: 20...80), // Size of circular path
+                pathSpeed: Double.random(in: 2...8) // Speed of circular motion
+            )
+            babyQuestionMarks.append(babyQM)
+        }
+        
+        // Start the animation
+        animateSpinningQuestionMarks()
+        
+        // After 4 seconds, slow down and fade into final poem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+            slowDownAndTransition()
+        }
+    }
 
+    private func animateSpinningQuestionMarks() {
+        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
+            guard phase4Started && !showFinalPoem else {
+                timer.invalidate()
+                return
+            }
+            
+            let screenWidth = UIScreen.main.bounds.width
+            let screenHeight = UIScreen.main.bounds.height
+            
+            for i in 0..<babyQuestionMarks.count {
+                // Update the path angle for circular motion around their own center
+                babyQuestionMarks[i].pathAngle += babyQuestionMarks[i].pathSpeed
+                
+                // Calculate circular offset from their current trajectory position
+                let circularX = CGFloat(cos(babyQuestionMarks[i].pathAngle * .pi / 180)) * babyQuestionMarks[i].pathRadius
+                let circularY = CGFloat(sin(babyQuestionMarks[i].pathAngle * .pi / 180)) * babyQuestionMarks[i].pathRadius
+                
+                // Update main trajectory position
+                babyQuestionMarks[i].position.x += babyQuestionMarks[i].velocity.x * 0.05
+                babyQuestionMarks[i].position.y += babyQuestionMarks[i].velocity.y * 0.05
+                
+                // Apply strong drag to slow down trajectory movement over time
+                babyQuestionMarks[i].velocity.x *= 0.985  // Stronger drag
+                babyQuestionMarks[i].velocity.y *= 0.985
+                
+                // Keep them within screen bounds with bouncing that also slows down over time
+                let margin: CGFloat = 80
+                let centerX = screenWidth / 2
+                let centerY = screenHeight / 2
+                
+                // Calculate current speed to determine bounce strength
+                let currentSpeed = sqrt(babyQuestionMarks[i].velocity.x * babyQuestionMarks[i].velocity.x + babyQuestionMarks[i].velocity.y * babyQuestionMarks[i].velocity.y)
+                let bounceStrength = max(0.3, min(1.0, currentSpeed / 200)) // Bounce gets weaker as they slow down
+                
+                if babyQuestionMarks[i].position.x < margin {
+                    babyQuestionMarks[i].position.x = margin
+                    babyQuestionMarks[i].velocity.x = abs(babyQuestionMarks[i].velocity.x) * bounceStrength + CGFloat.random(in: 10...30)
+                    babyQuestionMarks[i].velocity.y += (centerY - babyQuestionMarks[i].position.y) * 0.01
+                } else if babyQuestionMarks[i].position.x > screenWidth - margin {
+                    babyQuestionMarks[i].position.x = screenWidth - margin
+                    babyQuestionMarks[i].velocity.x = -abs(babyQuestionMarks[i].velocity.x) * bounceStrength - CGFloat.random(in: 10...30)
+                    babyQuestionMarks[i].velocity.y += (centerY - babyQuestionMarks[i].position.y) * 0.01
+                }
+                
+                if babyQuestionMarks[i].position.y < margin {
+                    babyQuestionMarks[i].position.y = margin
+                    babyQuestionMarks[i].velocity.y = abs(babyQuestionMarks[i].velocity.y) * bounceStrength + CGFloat.random(in: 10...30)
+                    babyQuestionMarks[i].velocity.x += (centerX - babyQuestionMarks[i].position.x) * 0.01
+                } else if babyQuestionMarks[i].position.y > screenHeight - margin {
+                    babyQuestionMarks[i].position.y = screenHeight - margin
+                    babyQuestionMarks[i].velocity.y = -abs(babyQuestionMarks[i].velocity.y) * bounceStrength - CGFloat.random(in: 10...30)
+                    babyQuestionMarks[i].velocity.x += (centerX - babyQuestionMarks[i].position.x) * 0.01
+                }
+                
+                // Calculate final position with circular motion, but keep it within bounds
+                var finalX = babyQuestionMarks[i].position.x + circularX
+                var finalY = babyQuestionMarks[i].position.y + circularY
+                
+                // Clamp the final position to screen bounds
+                finalX = max(20, min(screenWidth - 20, finalX))
+                finalY = max(20, min(screenHeight - 20, finalY))
+                
+                babyQuestionMarks[i].position = CGPoint(x: finalX, y: finalY)
+                
+                // Update individual rotation (spinning around their own center) - this continues
+                babyQuestionMarks[i].currentRotation += babyQuestionMarks[i].rotationSpeed
+            }
+        }
+    }
+
+    private func slowDownAndTransition() {
+        // Gradually slow down both trajectory and circular motion
+        for i in 0..<babyQuestionMarks.count {
+            withAnimation(.easeOut(duration: 2.0)) {
+                babyQuestionMarks[i].velocity.x *= 0.1
+                babyQuestionMarks[i].velocity.y *= 0.1
+                babyQuestionMarks[i].pathSpeed *= 0.3
+                babyQuestionMarks[i].rotationSpeed *= 0.2
+            }
+        }
+        
+        // After slowing down, fade out babies and show final poem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.easeOut(duration: 1.5)) {
+                for i in 0..<babyQuestionMarks.count {
+                    babyQuestionMarks[i].opacity = 0
+                }
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                showFinalPoem = true
+                animateFinalPoemLines()
+            }
+        }
+    }
+
+    private func animateFinalPoemLines() {
+        for i in 0..<finalPoemLines.count {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.4) {
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    finalPoemOpacities[i] = 1.0
+                }
+            }
+        }
+        
+        // After final poem is complete, add a way to exit
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(finalPoemLines.count) * 0.4 + 2.0) {
+            // Could add another tap gesture or auto-return to menu
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            }
+        }
+    }
+}

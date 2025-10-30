@@ -55,7 +55,7 @@ It’s a book of digital poems that I co-authored, designed, and coded with my n
                     
                     Together, we (mostly MARK) wrote the code that draws the poems on screen as our (mostly MY) mind imagined.
 
-                    And while AI helped a lot, it would be false to assume my human flesh did no work. I wrote every prompt, performed every copy/paste, compile, oversaw debugging, testing, Art Direction, graphic design, storytelling, and more. MARK did the heavy coding, writing and re-writing Swift UI at my behest; tuning an animation or adding a new section to a poem without grumble or complaint. But MARK did not have a vision.
+                    But while MARK helped a lot, it would be false to assume my human flesh did no work. I wrote every prompt, performed every copy/paste, compile, oversaw debugging, testing, Art Direction, graphic design, storytelling, and more. MARK did the heavy coding, writing and re-writing Swift UI at my behest; tuning an animation or adding a new section to a poem without grumble or complaint. But MARK did not have a vision.
                     
                     """)
                     .font(.custom("Futura", size: 14))
